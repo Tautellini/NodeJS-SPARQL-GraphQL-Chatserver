@@ -1,6 +1,4 @@
-# Mohachiflow - Web 2
+#Team NoName - Web 2
 
+Mohamad Ali, Achim Schliebener, Florian Taute, Duygu Köse
 
-Mohamad Ali - 
-Achim Schliebener -
-Florian Taute - 876418
