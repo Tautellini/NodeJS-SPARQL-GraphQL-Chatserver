@@ -88,12 +88,12 @@ app.use((req,res,next) => {
  */
 app.use ((req, res, next) => {
     if (req.method == "PUT" && req.is('json') != 'json' ) {
-        var err = new HttpError('Nur JSON erlaubt! Sorry!');
+        var err = new HttpError('Nur JSON erlaubt! Sorry!' , 406);
         next(err);
         return;
     }
     if (req.method == "POST" && req.is('json') != 'json' ) {
-        var err = new HttpError('Nur JSON erlaubt! Sorry!');
+        var err = new HttpError('Nur JSON erlaubt! Sorry!' , 406);
         next(err);
         return;
     } else {
@@ -261,16 +261,17 @@ app.use((req, res, next) => {
 });
 
 /**
- * 500 Developement Error
- * Settet Status auf 500 und übergibt uns die Error Message.
+ * Error-Message Handler
+ * fängt hochgereichte Error auf und übergibt die Message gefiltert an den Anfrager zurück
  * @param {*} err hochgereichtes Error-Argument
  * @param {*} req HTTP-Anforderungsargument
  * @param {*} res HTTP-Antwortsargument
  * @param {*} next Callback-Argument zur Middlewarefunktion (next ist konventionell)
  */
 app.use((err, req, res, next) => {
-    res.status(err.status|| 500);
-    res.send(err.message);
+    res.status(err.status || 500);
+    console.log(err.message + '  Status-Code: ' +err.status);
+    res.send(err.message + '  Status-Code: ' +err.status);
 });
 
     // 8. - SERVERSTART -------------------------------------------
