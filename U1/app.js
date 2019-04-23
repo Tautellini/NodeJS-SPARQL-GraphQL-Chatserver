@@ -13,6 +13,8 @@
  * @version 1.0
  * 
  */
+
+// Testkommentar
 "use strict";
 
     // 1. - REQUIRES ----------------------------------------------
@@ -55,7 +57,7 @@ function createUrl(req, path){
  * @param {*} next Callback-Argument zur Middlewarefunktion (next ist konventionell)
  */
 app.use((req, res, next) => {
-    console.log(`REQUEST-TYP: ${req.method} ----- URL: ${req.originalUrl}`);
+    console.log(`REQUEST-TYP: ${req.method} ----- PATH: ${req.originalUrl}`);
     next();
 });
 
@@ -150,7 +152,7 @@ app.post('/tweets', (req,res,next) => {
         res.status(201).json(result);
     } else {
         // Fehlerbehandlung falsche Daten
-        var err = new HttpError('Falsche Daten!',400);
+        var err = new HttpError('Falsche Daten!', 400);
         next(err)
         return;
     }
