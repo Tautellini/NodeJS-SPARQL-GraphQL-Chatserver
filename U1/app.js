@@ -271,9 +271,19 @@ app.use((req, res, next) => {
  * @param {*} next Callback-Argument zur Middlewarefunktion (next ist konventionell)
  */
 app.use((err, req, res, next) => {
-    res.status(err.status || 500);
-    console.log(err.message + '  Status-Code: ' +err.status);
-    res.send(err.message + '  Status-Code: ' +err.status);
+    //res.status(err.status || 500);
+    //console.log(err.message + '  Status-Code: ' +err.status);
+    //res.send(err.message + '  Status-Code: ' +err.status);
+    var error = {
+        error: {
+            message: err.message,
+            path: req.path,
+            error: err.stack.toString()
+        }
+    };
+    console.log('ERROR: ${error}');
+    res.status(err.status);
+    res.json(error);
 });
 
     // 8. - SERVERSTART -------------------------------------------
