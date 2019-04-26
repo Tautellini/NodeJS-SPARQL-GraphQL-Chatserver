@@ -68,7 +68,9 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
     console.log(req.headers);
-    if ( req.get("Accept-Version") !== 1.0 ) {
+    console.log("-------------");
+    console.log(req.get('accept-version'));
+    if ( req.get("accept-version") !== "1" ) {
         var err = new HttpError('Falsche Version!', 500)
         next(err);
         return;
