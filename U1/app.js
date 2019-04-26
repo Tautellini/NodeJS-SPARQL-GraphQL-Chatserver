@@ -64,6 +64,18 @@ app.use((req, res, next) => {
     // 5. - ERRORHANDLING -----------------------------------------
     // ------------------------------------------------------------
 
+// Accept Version
+
+app.use((req, res, next) => {
+    console.log(req.headers);
+    if ( req.get("Accept-Version") !== 1.0 ) {
+        var err = new HttpError('Falsche Version!', 500)
+        next(err);
+        return;
+    }
+    next();
+});
+
 /**
  * Wrong-Method Middleware
  * Überprüft auf nicht erlaubte Anfragemethoden. Nur GET/PUT/POST/DELETE erlaubt.
@@ -281,7 +293,7 @@ app.use((err, req, res, next) => {
             error: err.stack.toString()
         }
     };
-    console.log('ERROR: ${error}');
+    console.log('ERROR: ' + err.stack.toString());
     res.status(err.status);
     res.json(error);
 });
@@ -298,7 +310,7 @@ app.use((err, req, res, next) => {
  */
 app.listen(port, (err) => {
     if (err !== undefined) {
-        console.log('Error beim starten: ${err}');
+        console.log('Error beim starten:' + err);
     } else { 
         console.log("Server läuft auf Port:" + port);
     }
