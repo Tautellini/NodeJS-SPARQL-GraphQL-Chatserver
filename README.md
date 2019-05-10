@@ -1,4 +1,4 @@
-#Team NoName - Web 2
+#Mohachiflow
 
-Mohamad Ali, Achim Schliebener, Florian Taute, Duygu Köse
+Mohamad Ali, Achim Schliebener, Florian Taute
 
