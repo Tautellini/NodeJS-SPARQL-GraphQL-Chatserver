@@ -1,0 +1,17 @@
+{
+  "name": "u2",
+  "version": "1.0.0",
+  "description": "Chat-Server mit Express-WS",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mohachiflow",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "express-ws": "^4.0.0",
+    "simple-memory-store": "^1.0.2"
+  }
+}
