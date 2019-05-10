@@ -66,17 +66,17 @@ app.use((req, res, next) => {
 
 // Accept Version
 
-app.use((req, res, next) => {
-    console.log(req.headers);
-    console.log("-------------");
-    console.log(req.get('accept-version'));
-    if ( req.get("accept-version") !== "1" ) {
-        var err = new HttpError('Falsche Version!', 500)
-        next(err);
-        return;
-    }
-    next();
-});
+// app.use((req, res, next) => {
+//     console.log(req.headers);
+//     console.log("-------------");
+//     console.log(req.get('accept-version'));
+//     if ( req.get("accept-version") !== "1" ) {
+//         var err = new HttpError('Falsche Version!', 500)
+//         next(err);
+//         return;
+//     }
+//     next();
+// });
 
 /**
  * Wrong-Method Middleware
