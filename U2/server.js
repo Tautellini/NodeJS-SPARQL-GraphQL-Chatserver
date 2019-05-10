@@ -40,7 +40,7 @@ app.ws('/', (ws, req) => {
     ws.on('message', message => {
         console.log('Recieved: ' + message);
         socketList.forEach(socket => {
-            socket.send(message);
+            socket.send("SERVER RECIEVED: "+message);
         })
     })
     ws.on('close', () => {
