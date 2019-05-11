@@ -34,31 +34,25 @@ app.use(bodyParser.json());
 var clients = {};
 
 app.ws('/', (client, req) => {
-    socketList.push(client);
     client.on('message', message => {
         var parsedJson = JSON.parse(message);
+        console.log("User connected: ")
         console.log(parsedJson);
         if ("name" in parsedJson) {
             clients[parsedJson.name] = client;
         } else {
             var key = parsedJson.recipient;
-            if (clients[key]) {
+            if (!(clients[key] === undefined)) {
                 clients[parsedJson.recipient].send(parsedJson.message);
             } else {
-                socket.send("Sry dude, your friend is not online!");
+                client.send("Sry dude, your friend is not online!");
             }
         }
-
-        if (message.type === 'utf8') {
-            console.log('Recieved: ' + message);
-            socketList.forEach(socket => {
-                socket.send("SERVER RECIEVED: "+message);
-            })
-        }
-    })
+    });
     client.on('close', () => {
+        
         console.log("Connection Closed");
-    })
+    });
 });
 
 /**

@@ -1,5 +1,5 @@
 // connectSocket is called when user clicks the connect button
-window.onload = function connectSocket() {
+function connectSocket() {
     // open socket
     var socket = new WebSocket("ws://localhost:3000");
     // is called when socket is opened
@@ -23,6 +23,17 @@ window.onload = function connectSocket() {
         message('RECIEVED:'+ msg.data);
     }
 
+    $('#disconnectButton').click(function() {
+        console.log("clicked disco button");
+        socket.close();
+        console.log(socket.readyState);
+    });
+    $('#message').keypress(function(event) {
+        if (event.keyCode == '13') {
+            send();
+        }
+    });
+
     // disconnect function to close the socket, can be called from disconnect button
     function send() {
         var input = {
@@ -30,21 +41,10 @@ window.onload = function connectSocket() {
             "message" : $('#message').val()
         }
         console.log(input);
+        console.log(socket);
         socket.send(JSON.stringify(input));
         message('SENDED: ' + input.message + " / TO: " + input.recipient);
     }
-}
-
-window.onload = function () {
-    $('#disconnectButton').click(function() {
-        console.log("clicked disco button");
-        socket.close();
-    });
-    $('#message').keypress(function(event) {
-        if (event.keyCode == '13') {
-            send();
-        }
-    });
 }
 
 // our message function to append a message to our LOG
