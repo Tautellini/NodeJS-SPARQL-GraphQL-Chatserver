@@ -1,64 +1,61 @@
-function connectSocket() {
+// connectSocket is called when user clicks the connect button
+window.onload = function connectSocket() {
+    // open socket
     var socket = new WebSocket("ws://localhost:3000");
-
+    // is called when socket is opened
     socket.onopen = function () {
+        // get the username via jquery
         var username = $('#name').val();
+        // call our connectUser function
         connectUser(username, socket);
-        console.log(username);
-        console.log('Socket Status = ' + socket.readyState);
-
-        // If you enter too fast, and the socket isnt established already
+        // If you enter a message too fast and the socket isnt connected already
         // the server will just crash with an error while trying to send smth back to the socket.
-        // This is an reminder to wait some time.
+        // This is an reminder to wait some time as a workaround.
         message('Please wait some seconds for the socket to connect.')
         setTimeout(function (){
             message('Socket Status: ' + socket.readyState);
             message('Thank you for waiting! Have fun chatting.')
         }, 2000);
     }
-
+    // is called when socket gets a message
     socket.onmessage = function (msg) {
+        // calls our message function
         message('RECIEVED:'+ msg.data);
     }
 
-    $('#text').keypress(function(event) {
+    // disconnect function to close the socket, can be called from disconnect button
+    function send() {
+        var input = {
+            "recipient" : $('#recipient').val(),
+            "message" : $('#message').val()
+        }
+        console.log(input);
+        socket.send(JSON.stringify(input));
+        message('SENDED: ' + input.message + " / TO: " + input.recipient);
+    }
+}
+
+window.onload = function () {
+    $('#disconnectButton').click(function() {
+        console.log("clicked disco button");
+        socket.close();
+    });
+    $('#message').keypress(function(event) {
         if (event.keyCode == '13') {
             send();
         }
     });
-    function send() {
-        var text = $('#text').val();
-        socket.send(text);
-        message('SENDED: ' + text);
-        $('#text').val("");
-        }
 }
 
+// our message function to append a message to our LOG
 function message(msg) {
     $('#log').append(msg+'</br>');
 }
 
 function connectUser(username, socket) {
     message('Trying to connect as User: '+username);
-    console.log(socket);
+    var userJson = {
+        "name": username
+    }
+    socket.send(JSON.stringify(userJson));
 }
-
-        // function connectUser() {
-        //     var user = $('#name').val();
-        //     username(user);
-        // }
-
-        // function send() {
-        //     var text = $('#text').val();
-        //     console.log(text);
-        //     socket.send(text);
-        //     message('Sended :' + text);
-        //     $('#text').val("");
-        // }
-
-        // $('#text').keypress(function(event) {
-        //     if (event.keyCode == '13')
-        //     {
-        //         send();
-        //     }
-        // });

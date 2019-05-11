@@ -31,19 +31,33 @@ const expressWs = require('express-ws')(app);
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-    // 4. - MIDDLEWARE --------------------------------------------
-    // ------------------------------------------------------------
-var socketList = [];
+var clients = {};
 
-app.ws('/', (ws, req) => {
-    socketList.push(ws);
-    ws.on('message', message => {
-        console.log('Recieved: ' + message);
-        socketList.forEach(socket => {
-            socket.send("SERVER RECIEVED: "+message);
-        })
+app.ws('/', (client, req) => {
+    socketList.push(client);
+    client.on('message', message => {
+        var parsedJson = JSON.parse(message);
+        console.log(parsedJson);
+        if ("name" in parsedJson) {
+            clients[parsedJson.name] = client;
+        } else {
+            var key = parsedJson.recipient;
+            if (clients[key]) {
+                clients[parsedJson.recipient].send(parsedJson.message);
+            } else {
+                socket.send("Sry dude, your friend is not online!");
+            }
+        }
+
+        if (message.type === 'utf8') {
+            console.log('Recieved: ' + message);
+            socketList.forEach(socket => {
+                socket.send("SERVER RECIEVED: "+message);
+            })
+        }
     })
-    ws.on('close', () => {
+    client.on('close', () => {
+        console.log("Connection Closed");
     })
 });
 
