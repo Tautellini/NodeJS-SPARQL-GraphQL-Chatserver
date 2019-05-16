@@ -33,26 +33,25 @@ app.use(bodyParser.json());
 
 var clients = {};
 
-function postStuff() {
+function postMessage(sender, recipient, text) {
     var request = require('request');
-
+    var now = new Date();
+    console.log(now);
     var myjsonld = {
-        "@context" :
-        {
-            "name": "http://schema.org/name",
-            "email" : "http://schema.org/email",
-            "homepage" :
-            {
-                "@id" : "http://schema.org/url",
-                "@type" : "@id"
-            },
-            "Person" : "http://schema.org/Person/",
+        "@context" : "http://schema.org/",
+        "@type" : "Message",
+        "@id" : now,
+        "sender" : {
+            "@id" : sender,
+            "@type" : "Person",
+            "name" : sender,
         },
-        "@id" : "Person:Florian",
-        "@type" : "Person",
-        "name" : "Florian",
-        "email" : "bla@bla.de",
-        "homepage" : "http://tauteweb.de"
+        "recipient" : {
+            "@id" : recipient,
+            "@type" : "Person",
+            "name" : recipient,
+        },
+        "text" : text
     }
 
     request.post( {
@@ -70,123 +69,52 @@ function postStuff() {
     });
 }
 
-function postStuff2() {
+function getAllNodes(person, callback) {
     var request = require('request');
-
-    var myjsonld = {
-        "@context" :
-        {
-            "name": "http://schema.org/name",
-            "email" : "http://schema.org/email",
-            "homepage" :
-            {
-                "@id" : "http://schema.org/url",
-                "@type" : "@id"
-            },
-            "Person" : "http://schema.org/Person/",
-        },
-        "@id" : "Person:Dennis",
-        "@type" : "Person",
-        "name" : "Dennis",
-        "email" : "dennis@bla.de",
-        "homepage" : "http://dennisweb.de"
-    }
-
-    request.post( {
-        headers: {'content-type' : 'application/ld+json'},
-        url:'http://localhost:3030/ds/data',
-        method: 'post',
-        json: true,
-        body: myjsonld,
-        function (error, response, body) {
-            // console.log('successful update');
-            console.log(body);
-            console.log(response.statusCode)
-            console.warn(error);
-        }
-    });
-}
-
-function postMessage() {
-    var request = require('request');
-
-    var sender = "Florian";
-    var recipient = "Dennis";
-
-    var myjsonld = {
-        "@context" :
-        {
-            "Messages" : "http://schema.org/Messages/",
-            "Message" : {
-                "@id" : "http://schema.org/Message",
-                "@type" : "@id",
-                "sender" : "http://schema.org/Person/",
-                "recipient" : "http://schema.org/Person/",
-            }
-        },
-        "@id" : "Messages:"+sender+recipient,
-        "@type" : "Messages",
-        "Message" : {
-            "text" : "Lorem Ipsum Dolor Sit Achim",
-            "sender" : "http://schema.org/Person/"+sender,
-            "recipient" : "http://schema.org/Person/"+recipient,
-        }
-    }
-
-    request.post( {
-        headers: {'content-type' : 'application/ld+json'},
-        url:'http://localhost:3030/ds/data',
-        method: 'post',
-        json: true,
-        body: myjsonld,
-        function (error, response, body) {
-            // console.log('successful update');
-            console.log(body);
-            console.log(response.statusCode)
-            console.warn(error);
-        }
-    });
-}
-
-
-function postSparqlQuery(query) {
-    var http = require('http');
 
     var options = {
-        host: 'localhost',
-        path: '/ds/query?update=',
-        port: '3030',
-        method: 'POST'
-    };
+        'bla' : "PREFIX schema: <http://schema.org/> SELECT * WHERE { ?person schema:name '"+person+"' . ?message schema:sender ?person . ?message schema:text ?text . ?message schema:recipient ?empf }",
+        'Accept': 'application/json',
+    }
 
-    var req = http.request(options, function(res) {
-        res.setEncoding("utf8");
-        res.on('data', function(chunk) {
-            console.log('Response: ' + chunk);
-        });
+    console.log("GET ALL NODES:");
+
+    request.get('http://localhost:3030/ds/sparql?query='+encodeURIComponent(options.bla),options,function(error,response,body){
+        if(error) {
+            console.warn(error);
+        }
+        if(response.statusCode == 200 ) {
+            // console.log(response);
+            // console.log(response.statusCode);
+            console.log(body);
+            callback(body);
+        } else {
+            console.log("What happened?");
+            console.log(response.statusCode);
+            console.log(response);
+        }
     });
-    //This is the data we are posting, it needs to be a string or a buffer
-    req.write("PREFIX test:<http://www.semanticweb.org/muhammad/ontologies/2017/2/untitled-ontology-14#> INSERT { ?KPIs test:hasValue 2009} WHERE { ?KPIs test:hasValue ?Newvalue}");
-    req.end();
 }
 
 app.ws('/', (client, req) => {
     client.on('message', message => {
         var parsedJson = JSON.parse(message);
         console.log("User connected: ")
-        console.log(parsedJson);
         if ("name" in parsedJson) {
             clients[parsedJson.name] = client;
+            console.log(getAllNodes(parsedJson.name, function(body) {
+                client.send(body);
+            }));
             // postSparqlQuery(parsedJson);
-            postStuff();
-            postStuff2();
-            postMessage();
+            // postUser(parsedJson.name);
         } else {
+            var text = parsedJson.message;
             var key = parsedJson.recipient;
+            postMessage(parsedJson.sender, parsedJson.recipient, text);
             if (!(clients[key] === undefined)) {
                 clients[parsedJson.recipient].send(parsedJson.message);
             } else {
-                client.send("Sry dude, your friend is not online!");
+                client.send("Sry dude, your friend is not known!");
             }
         }
     });
