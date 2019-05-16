@@ -11,7 +11,6 @@
  * 
  */
 
-// Testkommentar
 "use strict";
 
     // 1. - REQUIRES ----------------------------------------------
@@ -105,8 +104,6 @@ app.ws('/', (client, req) => {
             console.log(getAllNodes(parsedJson.name, function(body) {
                 client.send(body);
             }));
-            // postSparqlQuery(parsedJson);
-            // postUser(parsedJson.name);
         } else {
             var text = parsedJson.message;
             var key = parsedJson.recipient;
@@ -114,12 +111,12 @@ app.ws('/', (client, req) => {
             if (!(clients[key] === undefined)) {
                 clients[parsedJson.recipient].send(parsedJson.message);
             } else {
-                client.send("Sry dude, your friend is not known!");
+                client.send("Recipient is not online! He will get the message when he comes back.");
             }
         }
     });
     client.on('close', () => {
-
+        console.log(client);
         console.log("Connection Closed");
     });
 });
