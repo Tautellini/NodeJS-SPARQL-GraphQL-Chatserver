@@ -1,28 +1,18 @@
-// connectSocket is called when user clicks the connect button
 function connectSocket() {
+    // to not stack our eventlisteners we unbind everything on
+    // load of this function
     $(document).unbind();
-    // open socket
+
     var socket = new WebSocket("ws://localhost:3000");
-    // is called when socket is opened
+
     socket.onopen = function () {
-        // get the username via jquery
         var username = $('#name').val();
-        // call our connectUser function
         connectUser(username, socket);
-        // If you enter a message too fast and the socket isnt connected already
-        // the server will just crash with an error while trying to send smth back to the socket.
-        // This is an reminder to wait some time as a workaround.
-        // message('Please wait some seconds for the socket to connect.')
-        // setTimeout(function (){
-        //     message('Socket Status: ' + socket.readyState);
-        //     message('Thank you for waiting! Have fun chatting.')
-        // }, 2000);
     }
-    // is called when socket gets a message
+
     socket.onmessage = function (msg) {
         console.log(msg);
-        // calls our message function
-        message('RECIEVED:'+ msg.data);
+        message(msg.data);
     }
 
     $('#disconnectButton').click(function() {
@@ -38,7 +28,10 @@ function connectSocket() {
         }
     });
 
-    // disconnect function to close the socket, can be called from disconnect button
+    $('getMessages').click(function() {
+        socket.send();
+    });
+
     function send() {
         var input = {
             "sender" : $('#name').val(),
@@ -54,7 +47,12 @@ function connectSocket() {
 
 // our message function to append a message to our LOG
 function message(msg) {
-    $('#log').append(msg+'</br>');
+    if (msg.startsWith("History:")) {
+        $('#history').empty();
+        $('#history').append(msg+'</br>');
+    } else {
+        $('#log').append(msg+'</br>');
+    }
 }
 
 function connectUser(username, socket) {

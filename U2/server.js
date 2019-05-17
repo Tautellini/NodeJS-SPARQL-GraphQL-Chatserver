@@ -1,6 +1,7 @@
 /**
  *  
- * Simple Express-WS Chatserver
+ * Express-Websocket Chatserver
+ * Storing Data as RDF Triples on a JENA FUSEKI Server
  * 
  * @author Florian Taute
  *         Achim Schliebener
@@ -13,18 +14,13 @@
 
 "use strict";
 
-    // 1. - REQUIRES ----------------------------------------------
-    // ------------------------------------------------------------
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const store = new (require('simple-memory-store'))();
 const HttpError = require('./http-error.js');
 
-    // 2. - CONFIG ------------------------------------------------
-    // ------------------------------------------------------------    
 const port = 3000;
-store.initWithDefaultData();    // Füllt DB-Objekt mit ein paar Testdaten
 const app = express();
 const expressWs = require('express-ws')(app);
 app.use(express.static('public'));
@@ -60,7 +56,6 @@ function postMessage(sender, recipient, text) {
         json: true,
         body: myjsonld,
         function (error, response, body) {
-            // console.log('successful update');
             console.log(body);
             console.log(response.statusCode)
             console.warn(error);
@@ -68,25 +63,41 @@ function postMessage(sender, recipient, text) {
     });
 }
 
-function getAllNodes(person, callback) {
+function getMessages (sender, recipient, callback) {
     var request = require('request');
-
+    var opt = {
+        "Accept" : "application/json",
+    }
+    
     var options = {
-        'bla' : "PREFIX schema: <http://schema.org/> SELECT * WHERE { ?person schema:name '"+person+"' . ?message schema:sender ?person . ?message schema:text ?text . ?message schema:recipient ?empf }",
-        'Accept': 'application/json',
+
+        "to" : "PREFIX schema: <http://schema.org/>"
+        + " SELECT ?text ?message ?person WHERE "
+        + " {{"
+        + " ?person schema:name '"+ sender+ "' ."
+        + " ?message schema:sender ?person ."
+        + " ?message schema:text ?text ."
+        + " ?recipient schema:name '"+recipient+ "' ."
+        + " ?message schema:recipient ?recipient ."
+        + " }"
+        + " UNION {"
+        + " ?person schema:name '"+ recipient+ "' ."
+        + " ?message schema:sender ?person ."
+        + " ?message schema:text ?text ."
+        + " ?recipient schema:name '"+ sender+ "' ."
+        + " ?message schema:recipient ?recipient ."
+        + "}}"
+        + " ORDERBY DESC(?message)"
     }
 
     console.log("GET ALL NODES:");
 
-    request.get('http://localhost:3030/ds/sparql?query='+encodeURIComponent(options.bla),options,function(error,response,body){
+    request.get('http://localhost:3030/ds/sparql?query='+encodeURIComponent(options.to),opt,function(error,response,body){
         if(error) {
             console.warn(error);
-        }
-        if(response.statusCode == 200 ) {
-            // console.log(response);
-            // console.log(response.statusCode);
+        } else if(response.statusCode == 200 ) {
             console.log(body);
-            callback(body);
+            callback("History:"+body);
         } else {
             console.log("What happened?");
             console.log(response.statusCode);
@@ -95,19 +106,20 @@ function getAllNodes(person, callback) {
     });
 }
 
+
 app.ws('/', (client, req) => {
     client.on('message', message => {
         var parsedJson = JSON.parse(message);
         console.log("User connected: ")
         if ("name" in parsedJson) {
             clients[parsedJson.name] = client;
-            console.log(getAllNodes(parsedJson.name, function(body) {
-                client.send(body);
-            }));
         } else {
             var text = parsedJson.message;
             var key = parsedJson.recipient;
             postMessage(parsedJson.sender, parsedJson.recipient, text);
+            console.log(getMessages(parsedJson.sender, parsedJson.recipient, function(body) {
+                client.send(body);
+            }));
             if (!(clients[key] === undefined)) {
                 clients[parsedJson.recipient].send(parsedJson.message);
             } else {
@@ -131,9 +143,6 @@ app.use((req, res, next) => {
     console.log(`REQUEST-TYP: ${req.method} ----- PATH: ${req.originalUrl}`);
     next();
 });
-
-    // 8. - SERVERSTART -------------------------------------------
-    // ------------------------------------------------------------
 
 /**
  * Server-Start / Log
