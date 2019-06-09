@@ -268,9 +268,7 @@ app.route('/users/:id')
 /***************************************/
 app.route('/tweets')
     .get((req, res) => {
-        console.log("app.get auf /tweets wurde aufgerufen. Liefere alle tweets aus.")
-        let tweets = store.select("tweets")
-        res.contentType('application/json').send(tweets)
+        // Todo
     })
     .put((req, res) => {
         console.log("app.put auf /tweets wurde aufgerufen, aber PUT auf allen tweets ist nicht gestattet. ")
