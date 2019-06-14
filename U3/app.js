@@ -66,6 +66,7 @@ function sparqlQuery (method, action, query, data) {
         var queryPostUser = `
         PREFIX schema: <http://schema.org/>
         INSERT DATA {
+        <http://localhost:3030/users> schema:user <http://localhost:3030/users/${data.id}> .
         <http://localhost:3030/users/${data.id}> schema:name "${data.name}" .
         <http://localhost:3030/users/${data.id}> schema:tweets <http://localhost:3030/users/${data.id}/tweets/>
         }`
@@ -77,6 +78,15 @@ function sparqlQuery (method, action, query, data) {
           ?tweets schema:tweet ?tweet .
           ?tweet schema:text ?text
         }`
+        var queryGetTweetsByUserID = `
+        PREFIX schema: <http://schema.org/>
+        SELECT ?user ?tweet ?text
+        WHERE {
+            <http://localhost:3030/users/${data.userid}> schema:tweets ?tweets .
+            ?tweets schema:tweet ?tweet .
+            ?tweet schema:text ?text
+        }
+        `
         var queryGetTweet = `
         PREFIX schema: <http://schema.org/>
         SELECT (<http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}>) ?text
@@ -85,14 +95,18 @@ function sparqlQuery (method, action, query, data) {
         }`
         var queryPostTweet = `
         PREFIX schema: <http://schema.org/>
-        SELECT (<http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}>) ?text
-        WHERE {
-        <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text ?text
+        INSERT DATA {
+            <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text "${data.text}"
         }`
         var queryDeleteTweet = `
         PREFIX schema: <http://schema.org/>
         DELETE WHERE {
         ?tweets schema:tweet <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> .
+        <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text ?text;
+        }`
+        var queryDeleteTweetOnly = `
+        PREFIX schema: <http://schema.org/>
+        DELETE WHERE {
         <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text ?text;
         }`
         var queryDeleteUser = `
@@ -104,13 +118,21 @@ function sparqlQuery (method, action, query, data) {
           ?tweets schema:tweet ?tweet .
           ?tweet schema:text ?text;
         }`
+        var queryDeleteUserOnly = `
+        PREFIX schema: <http://schema.org/>
 
+        DELETE WHERE { ?users schema:user <http://localhost:3030/users/${data.userid}>.
+          <http://localhost:3030/users/${data.userid}> schema:name ?name
+        }
+        `
 
         /***************************************/
         /*           QUERY SETTERS             */
         /***************************************/
+        console.log("SPARQL TRANSLATOR FUNCTION CALLED")
         console.log("Method: "+method+" Action: "+action)
         console.log("Data: "+JSON.stringify(data))
+        console.log("----------------------------")
         if (action == "getusers") {
             query = queryGetUsers;
         }
@@ -123,17 +145,26 @@ function sparqlQuery (method, action, query, data) {
         if (action == "deleteuser") {
             query = queryDeleteUser;
         }
+        if (action == "deleteuseronly") {
+            query = queryDeleteUserOnly;
+        }
         if (action == "gettweets") {
             query = queryGetTweets;
         }
         if (action == "gettweet") {
             query = queryGetTweet;
         }
+        if (action == "gettweetsbyuserid") {
+            query = queryGetTweetsByUserID;
+        }
         if (action == "posttweet") {
             query = queryPostTweet;
         }
         if (action == "deletetweet") {
             query = queryDeleteTweet;
+        }
+        if (action == "deletetweetonly") {
+            query = queryDeleteTweetOnly;
         }
         /***************************************/
         /*           SPARQL METHODS            */
@@ -145,9 +176,9 @@ function sparqlQuery (method, action, query, data) {
                 resolve(temp)
             })
         }
-        // We are using POST for the FUSEKI Server, even when the Method is PUT. We simply delete the original
+        // We are using POST for the FUSEKI Server, even when the intention is PUT. We simply delete the original
         // RDF Triple inside our query before inserting new Data - which resolves to smth "like" PUT
-        if (method == "post" || method == "put") {
+        if (method == "post") {
             var request = require('request')
             request.post({
                 headers: {'content-type':'application/x-www-form-urlencoded'},
@@ -165,14 +196,26 @@ function sparqlQuery (method, action, query, data) {
 /***************************************/
 app.route('/sparql')
     .get( async (req, res) => {
-        if (req.query != null) {
-            let data = await sparqlQuery("", "", query, "")
+        if (req.body.query != null) {
+            let data = await sparqlQuery("get", "", req.body.query, "")
             res.send(data);
         } else {
             res.error(400);
         }
     })
-    .post((req, res) => {
+    .post( async (req, res) => {
+        if (req.query != null) {
+            let data = await sparqlQuery("post", "", req.body.query, "")
+            res.send(data);
+        } else {
+            res.error(400);
+        }
+    })
+    .put((req, res) => {
+        res.send("PUT on /sparql not supported. Use POST instead")
+    })
+    .delete((req, res) => {
+        res.send("DELETE on /sparql not supported. Use POST instead")
     })
 
 /***************************************/
@@ -185,9 +228,16 @@ const schema = buildSchema(`
     input UserInput {
         name: String!
     }
+    input UserDeleteInput {
+        userid: Int!
+    }
     input TweetInput {
         userid: Int!
         text: String!
+    }
+    input TweetDeleteInput {
+        userid: Int!
+        tweetid: Int!
     }
     type Query {
         users: String
@@ -197,7 +247,9 @@ const schema = buildSchema(`
     }
     type Mutation {
         createUser(input: UserInput): String
+        deleteUser(input: UserDeleteInput): String
         createTweet(input: TweetInput): String
+        deleteTweet(input: TweetDeleteInput): String
     }
     `)
     // Todo: deleteUser and deleteTweet
@@ -220,22 +272,23 @@ const root = {
     },
     createUser: async (user) => {
         let tempUsers = await sparqlQuery("get", "getusers", "","")
-        user.id = tempUsers.length+101
-        let data = await sparqlQuery("post", "postuser", "", user)
+        user.input.id = tempUsers.length+101
+        let data = await sparqlQuery("post", "postuser", "", user.input)
         return JSON.stringify(data)
     },
-    createTweet: (tweet) => {
-        // Todo
-        let tempTweet = await sparqlQuery("get", "gettweets", "","")
-        tweet.id = tempTweet.length+101
-        let data = await sparqlQuery("post", "posttweet", "", tweet)
+    createTweet: async (tweet) => {
+        let tempTweet = await sparqlQuery("get", "gettweetsbyuserid", "",tweet.input)
+        tweet.input.tweetid = tempTweet.length+1
+        let data = await sparqlQuery("post", "posttweet", "", tweet.input)
         return JSON.stringify(data)
     },
-    deleteUser: (user) => {
-        // Todo
+    deleteUser: async (userid) => {
+        let data = await sparqlQuery("post", "deleteuser", "", userid.input)
+        return JSON.stringify(data)
     },
-    deleteTweet: (tweet) => {
-        // Todo
+    deleteTweet: async (tweetid) => {
+        let data = await sparqlQuery("post", "deletetweet", "", tweetid.input)
+        return JSON.stringify(data)
     }
 }
 
@@ -270,33 +323,40 @@ app.route('/users')
 
 app.route('/users/:id')
     .get( async (req, res) => {
-        let data = await sparqlQuery("get", "getuser", null, req.params)
+        let data = await sparqlQuery("get", "getuser", "", req.params)
         res.send(data);
     })
-    .put((req, res) => {
-        // Todo
+    .put( async (req, res) => {
+        req.params.userid = req.params.id
+        req.params.name = req.body.name
+        let temp = await sparqlQuery("post", "deleteuseronly", "", req.params)
+        let data = await sparqlQuery("post", "postuser", "", req.params)
+        res.send(data)
     })
     .post((req, res) => {
         console.log("app.post auf users:" + req.params.id + " wurde aufgerufen. Post auf spezielle ID ist nicht gestattet. Fehlermeldung wird ausgeliefert.")
         res.send('Operation not allowed')
     })
-    .delete((req, res) => {
-        // Todo
+    .delete( async (req, res) => {
+        req.params.userid = req.params.id
+        let data = await sparqlQuery("post", "deleteuser", "", req.params)
+        res.send(data)
     })
 
 /***************************************/
 /*         tweets  block               */
 /***************************************/
 app.route('/tweets')
-    .get((req, res) => {
-        // Todo
+    .get( async (req, res) => {
+        let data = await sparqlQuery("get", "gettweets", "", "")
+        res.send(data)
     })
     .put((req, res) => {
         console.log("app.put auf /tweets wurde aufgerufen, aber PUT auf allen tweets ist nicht gestattet. ")
         res.send('Operation not allowed')
     })
     .post((req, res) =>{
-        // Todo
+        res.send("post on /tweets not supported. Use /users/:userid/tweets/:tweetid instead")
     })
     .delete((req, res) => {
         console.log("app.delete auf /tweets wurde aufgerunfen. Das Löschen aller Tweets ist nicht erlaubt.")
@@ -310,9 +370,10 @@ app.all('/tweets/:id', (req,res) => {
 /***************************************/
 /*      tweets of user block           */
 /***************************************/
-app.route('/users/:id/tweets')
-    .get((req, res) => {
-        // Todo
+app.route('/users/:userid/tweets')
+    .get( async (req, res) => {
+        let data = await sparqlQuery("get", "gettweetsbyuserid", "",req.params)
+        res.send(data)
     })
 
 app.route('/users/:userid/tweets/:tweetid')
@@ -320,15 +381,19 @@ app.route('/users/:userid/tweets/:tweetid')
         let data = await sparqlQuery("get", "gettweet", null, req.params)
         res.send(data);
     })
-    .put((req, res) => {
-        // Todo
+    .put( async (req, res) => {
+        req.params.text = req.body.text
+        let temp = await sparqlQuery("post", "deletetweetonly", "", req.params)
+        let data = await sparqlQuery("post", "posttweet", "", req.params)
+        res.send(data)
     })
     .post((req, res) => {
         console.log("app.put auf tweets:" + req.params.id + " wurde aufgerufen. POST auf ID ist nicht erlaubt.")
         res.send('Operation not allowed')
     })
-    .delete((req, res) =>  {
-        // Todo
+    .delete( async (req, res) =>  {
+        let temp = await sparqlQuery("post", "deletetweetonly", "", req.params)
+        res.send(temp)
     })
 
 /******************************************/
