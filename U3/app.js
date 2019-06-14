@@ -89,6 +89,23 @@ function sparqlQuery (method, action, query, data) {
         WHERE {
         <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text ?text
         }`
+        var queryDeleteTweet = `
+        PREFIX schema: <http://schema.org/>
+        DELETE WHERE {
+        ?tweets schema:tweet <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> .
+        <http://localhost:3030/users/${data.userid}/tweets/${data.tweetid}> schema:text ?text;
+        }`
+        var queryDeleteUser = `
+        PREFIX schema: <http://schema.org/>
+
+        DELETE WHERE { ?users schema:user <http://localhost:3030/users/${data.userid}>.
+          <http://localhost:3030/users/${data.userid}> schema:name ?name.
+          <http://localhost:3030/users/${data.userid}> schema:tweets ?tweets.
+          ?tweets schema:tweet ?tweet .
+          ?tweet schema:text ?text;
+        }`
+
+
         /***************************************/
         /*           QUERY SETTERS             */
         /***************************************/
@@ -104,7 +121,7 @@ function sparqlQuery (method, action, query, data) {
             query = queryPostUser;
         }
         if (action == "deleteuser") {
-            // Todo
+            query = queryDeleteUser;
         }
         if (action == "gettweets") {
             query = queryGetTweets;
@@ -116,7 +133,7 @@ function sparqlQuery (method, action, query, data) {
             query = queryPostTweet;
         }
         if (action == "deletetweet") {
-            // Todo
+            query = queryDeleteTweet;
         }
         /***************************************/
         /*           SPARQL METHODS            */
@@ -186,7 +203,7 @@ const schema = buildSchema(`
     // Todo: deleteUser and deleteTweet
 const root = {
     users: async () => {
-        let data = await sparqlQuery("get", "getusers", "")
+        let data = await sparqlQuery("get", "getusers", "","")
         return JSON.stringify(data)
     },
     user: async (id) => {
@@ -194,7 +211,7 @@ const root = {
         return JSON.stringify(data)
     },
     tweets: async () => {
-        let data = await sparqlQuery("get", "gettweets", "")
+        let data = await sparqlQuery("get", "gettweets", "","")
         return JSON.stringify(data)
     },
     tweet: async (id) => {
@@ -209,6 +226,10 @@ const root = {
     },
     createTweet: (tweet) => {
         // Todo
+        let tempTweet = await sparqlQuery("get", "gettweets", "","")
+        tweet.id = tempTweet.length+101
+        let data = await sparqlQuery("post", "posttweet", "", tweet)
+        return JSON.stringify(data)
     },
     deleteUser: (user) => {
         // Todo
