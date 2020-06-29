@@ -1,10 +1,8 @@
-# Web-Development II
-## Exercises
+## Web-Development II Exercises
+### Author: Florian Taute
 
-## Author: Florian Taute
-
-### Beuth Hochschule für Technik Berlin
-### Web-Development II with Gökhan Coskun
+#### Beuth Hochschule für Technik Berlin
+#### Web-Development II with Gökhan Coskun
 
 
 ## Task 1
