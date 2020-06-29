@@ -1,9 +1,6 @@
-## Web-Development II Exercises
-### Author: Florian Taute
-
+### Exercises
 #### Beuth Hochschule für Technik Berlin
 #### Web-Development II with Gökhan Coskun
-
 
 ## Task 1
 NodeJS Server
