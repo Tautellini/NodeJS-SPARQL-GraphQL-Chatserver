@@ -9,8 +9,8 @@
   "author": "Mohachiflow",
   "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.18.3",
-    "express": "^4.16.4",
+    "body-parser": "^1.20.1",
+    "express": "^4.18.2",
     "express-ws": "^4.0.0",
     "request": "^2.88.0",
     "simple-memory-store": "^1.0.2"
